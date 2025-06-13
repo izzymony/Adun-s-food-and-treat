@@ -1,53 +1,53 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Minus, Plus, Trash2, Loader2 } from "lucide-react"
-import { useCart } from "@/app/components/cart-provider"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { fetchCart, updateCartItem, removeCartItem, clearCart } from "@/lib/firebase/cart"
+
+const userId = "demo-user-id" // Replace with real user ID
 
 export default function CartPage() {
-  const { cart, subtotal, shipping, total, isLoading, updateItemQuantity, removeItem, clearAllItems } = useCart()
+  const [cart, setCart] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const [couponCode, setCouponCode] = useState("")
   const [couponError, setCouponError] = useState("")
 
-  const handleQuantityChange = async (id: number, newQuantity: number) => {
+  useEffect(() => {
+    fetchCart(userId).then(items => {
+      setCart(items)
+      setLoading(false)
+    })
+  }, [])
+
+  const handleQuantityChange = async (id: string, newQuantity: number) => {
     if (newQuantity < 1) return
-
-    const formData = new FormData()
-    formData.append("id", id.toString())
-    formData.append("quantity", newQuantity.toString())
-
-    await updateItemQuantity(formData)
+    await updateCartItem(userId, id, newQuantity)
+    setCart(cart =>
+      cart.map(item => item.id === id ? { ...item, quantity: newQuantity } : item)
+    )
   }
 
-  const handleRemoveItem = async (id: number) => {
-    const formData = new FormData()
-    formData.append("id", id.toString())
-
-    await removeItem(formData)
+  const handleRemoveItem = async (id: string) => {
+    await removeCartItem(userId, id)
+    setCart(cart => cart.filter(item => item.id !== id))
   }
 
   const handleClearCart = async () => {
-    await clearAllItems()
+    await clearCart(userId)
+    setCart([])
   }
 
-  const applyCoupon = () => {
-    if (!couponCode) {
-      setCouponError("Please enter a coupon code")
-      return
-    }
+  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const shipping = subtotal > 35 ? 0 : 5
+  const total = subtotal + shipping
 
-    // In a real app, this would validate the coupon with the server
-    setCouponError("Invalid coupon code")
-  }
-
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="container py-12 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <Loader2 className="h-8 w-8 animate-spin text-green-600" />
       </div>
     )
   }
@@ -55,8 +55,7 @@ export default function CartPage() {
   return (
     <div className="container py-12">
       <h1 className="text-3xl font-bold mb-8">Your Shopping Cart</h1>
-
-      {cart.items.length === 0 ? (
+      {cart.length === 0 ? (
         <div className="text-center py-12">
           <h2 className="text-2xl font-medium mb-4">Your cart is empty</h2>
           <p className="text-gray-500 mb-8">Looks like you haven't added any products to your cart yet.</p>
@@ -80,7 +79,7 @@ export default function CartPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {cart.items.map((item) => (
+                  {cart.map((item) => (
                     <tr key={item.id} className="bg-white">
                       <td className="px-6 py-4">
                         <div className="flex items-center">
@@ -114,8 +113,8 @@ export default function CartPage() {
                           </button>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-right">${item.price.toFixed(2)}</td>
-                      <td className="px-6 py-4 text-right font-medium">${(item.price * item.quantity).toFixed(2)}</td>
+                      <td className="px-6 py-4 text-right">₦{item.price.toFixed(2)}</td>
+                      <td className="px-6 py-4 text-right font-medium">₦{(item.price * item.quantity).toFixed(2)}</td>
                       <td className="px-6 py-4 text-right">
                         <button
                           onClick={() => handleRemoveItem(item.id)}
@@ -130,7 +129,6 @@ export default function CartPage() {
                 </tbody>
               </table>
             </div>
-
             <div className="mt-6 flex justify-between items-center">
               <Link href="/products">
                 <Button variant="outline">Continue Shopping</Button>
@@ -144,52 +142,27 @@ export default function CartPage() {
               </Button>
             </div>
           </div>
-
           {/* Order Summary */}
           <div className="lg:w-1/3">
             <div className="border rounded-lg p-6 space-y-6">
               <h2 className="text-xl font-bold">Order Summary</h2>
-
               <div className="space-y-4">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal</span>
-                  <span>${subtotal.toFixed(2)}</span>
+                  <span>₦{subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Shipping</span>
-                  <span>{shipping === 0 ? "Free" : `$${shipping.toFixed(2)}`}</span>
+                  <span>{shipping === 0 ? "Free" : `₦${shipping.toFixed(2)}`}</span>
                 </div>
                 <div className="border-t pt-4 flex justify-between font-bold">
                   <span>Total</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>₦{total.toFixed(2)}</span>
                 </div>
               </div>
-
-              <div className="space-y-4">
-                <div>
-                  {couponError && (
-                    <Alert variant="destructive" className="mb-2">
-                      <AlertDescription>{couponError}</AlertDescription>
-                    </Alert>
-                  )}
-                  <div className="flex items-center">
-                    <Input
-                      placeholder="Enter coupon code"
-                      className="rounded-r-none"
-                      value={couponCode}
-                      onChange={(e) => setCouponCode(e.target.value)}
-                    />
-                    <Button variant="outline" className="rounded-l-none border-l-0" onClick={applyCoupon}>
-                      Apply
-                    </Button>
-                  </div>
-                </div>
-
-                <Button className="w-full bg-green-600 hover:bg-green-700">Proceed to Checkout</Button>
-              </div>
-
+              <Button className="w-full bg-green-600 hover:bg-green-700">Proceed to Checkout</Button>
               <div className="text-xs text-gray-500">
-                <p>Free shipping on orders over $35</p>
+                <p>Free shipping on orders over ₦35</p>
                 <p className="mt-1">Estimated delivery: 2-4 business days</p>
               </div>
             </div>

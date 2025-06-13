@@ -1,9 +1,19 @@
+'use client'
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ProductCard } from "@/app/components/product-card"
-
-
+import { Loader2 } from 'lucide-react'
+import { fetchProducts } from "@/lib/firebase/products"
+import { useEffect, useState } from "react"
 export default function Home() {
+ const [products, setProducts] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+     useEffect(() =>{
+         fetchProducts().then(data =>{
+              setProducts(data)
+              setLoading(false)
+         })     
+     },[]) 
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
@@ -90,10 +100,16 @@ export default function Home() {
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
-            {featuredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+      {loading ? (
+        <div className="col-span-3 flex justify-center items-center py-12">
+          <Loader2 className="h-12 w-12 animate-spin text-green-600" />
+        </div>
+      ) : (
+        products.map((product) => (
+          <ProductCard key={product.id} product={product} />
+        ))
+      )}
+    </div>
         </div>
       </section>
     </div>
