@@ -56,7 +56,7 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white bg-white/30 backdrop-blur-md  border border-white/40 shadow-md">
-      <div className="container flex h-16 items-center px-4">
+      <div className=" flex h-16 items-center px-4">
         <Sheet>
           <SheetTrigger asChild className="lg:hidden">
             <Button variant="ghost" size="icon" className="mr-2">

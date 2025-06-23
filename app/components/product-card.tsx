@@ -39,15 +39,15 @@ export function ProductCard({ product }: ProductCardProps) {
   }
 
   return (
-    <div className="group relative overflow-hidden rounded-lg border bg-white shadow-sm transition-all hover:shadow-md">
+    <div className=" relative overflow-hidden  rounded-lg border bg-white shadow-sm transition-all hover:shadow-md">
       <Link href={`/product/${product.id}`}>
-        <div className="aspect-square overflow-hidden">
-          <img
-            src={product.image || "/image.png"}
-            alt={product.name}
-            className="h-full w-full object-cover transition-transform group-hover:scale-105"
-          />
-        </div>
+         <div className="h-48 overflow-hidden"> {/* Fixed height */}
+      <img
+        src={product.image || "/image.png"}
+        alt={product.name}
+        className="w-full h-full object-cover transition-transform group-hover:scale-105"
+      />
+      </div>
       </Link>
       <div className="p-4">
         {product.category && <div className="text-xs text-gray-500 mb-1">{product.category}</div>}
